@@ -1,50 +1,92 @@
+extern crate sdl2;
+
+use sdl2::pixels::Color::RGB;
+use sdl2::render::Renderer;
+use sdl2::rect::Point;
+
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
     pub b: u8,
-    pub a: u8
+    pub a: u8,
 }
 
-pub enum Pixel { Color, None }
+#[derive(Clone, Copy)]
+pub enum Pixel {
+    Data(Color),
+    Blank,
+}
 
-struct Canvas<'a> {
-    w: i32,
-    h: i32,
-    pixels: &'a [Pixel]
+pub struct Canvas {
+    pub w: usize,
+    pub h: usize,
+    pixels: Vec<Pixel>,
 }
 
 impl Canvas {
-    fn get_pixel(&self, x: i32, y: i32) -> Pixel {
-        // TODO check limits
-        self.pixels[x + y * self.w]
+    fn get(&self, x: usize, y: usize) -> Pixel {
+        if x > self.w || y > self.h {
+            error!("Invalid coordinates: ({}, {})", x, y);
+            Pixel::Blank
+        } else {
+            self.pixels[x + y * self.w]
+        }
     }
 
-    fn set_pixel(&self, x: i32, y:i32, p: Pixel) {
-        // TODO check limits
-        self.pixels[x + y * self.w] = p;
-    }
-}
-
-trait Backend {
-    fn init(&self, x: i32, y: i32);
-    fn render(&self, c: &Canvas);
-}
-
-pub struct Renderer<'a> {
-    backend: Backend,
-    canvas: Canvas<'a>
-}
-
-impl Renderer {
-    fn render(&self) {
-        self.backend.render(self.canvas);
+    pub fn set(&mut self, x: usize, y: usize, c: Color) {
+        if x > self.w || y > self.h {
+            error!("Invalid coordinates: ({}, {})", x, y);
+        } else {
+            self.pixels[x + y * self.w] = Pixel::Data(c)
+        }
     }
 }
 
-pub fn newRenderer(b: Backend, x: i32, y: i32) -> Renderer {
-    b.init(x, y);
-    Renderer {
-        backend: b,
-        canvas: Canvas { x: x, y: y, pixels: [Pixel::None; x * y] }
+pub struct Backend {
+    pub canvas: Canvas,
+    pub context: sdl2::Sdl,
+    renderer: Renderer<'static>,
+}
+
+impl Backend {
+    pub fn new(x: u32, y: u32) -> Backend {
+        let sdl_context = sdl2::init().unwrap();
+        let video = sdl_context.video().unwrap();
+        let window = video.window("Rusty", x, y)
+            .position_centered()
+            .opengl()
+            .build()
+            .unwrap();
+        let renderer = window.renderer().build().unwrap();
+
+        let xs = x as usize;
+        let ys = y as usize;
+        Backend {
+            context: sdl_context,
+            renderer: renderer,
+            canvas: Canvas {
+                w: xs,
+                h: ys,
+                pixels: vec![Pixel::Blank; xs * ys],
+            },
+        }
+    }
+
+    pub fn paint(&mut self) {
+        let ref mut rend = self.renderer;
+        for x in 0..self.canvas.w {
+            for y in 0..self.canvas.h {
+                match self.canvas.get(x, y) {
+                    Pixel::Data(color) => {
+                        rend.set_draw_color(RGB(color.r, color.g, color.b));
+                        rend.draw_point(Point::new(x as i32, y as i32));
+                    }
+                    Pixel::Blank => {}
+                };
+            }
+        }
+        rend.present();
+        // XXX show metrics
     }
 }
