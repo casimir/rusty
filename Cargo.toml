@@ -1,13 +1,11 @@
 [package]
-
 name = "rusty"
 version = "0.1.0"
 authors = ["Martin Chaine <martin@casimir.me>"]
 
 [dependencies]
-
-clock_ticks = "0.1"
 env_logger = "0.4"
+image = "0.12"
 log = "0.3"
 sdl2 = "0.28"
 
