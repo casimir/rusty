@@ -8,7 +8,7 @@ use self::sdl2::render::Renderer;
 use self::sdl2::rect::Point;
 use std::time::Duration;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -16,7 +16,7 @@ pub struct Color {
     pub a: u8,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Pixel {
     Data(Color),
     Blank,
@@ -30,7 +30,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    fn get(&self, x: u32, y: u32) -> Pixel {
+    pub fn get(&self, x: u32, y: u32) -> Pixel {
         if x > self.width || y > self.height {
             error!("invalid coordinates: ({}, {})", x, y);
             Pixel::Blank
@@ -45,8 +45,25 @@ impl Canvas {
             error!("invalid coordinates: ({}, {})", x, y);
         } else {
             let index = (x + y * self.width) as usize;
-            self.pixels[index] = Pixel::Data(c);
-            self.dirty = true;
+            let old = self.pixels[index];
+            let new = Pixel::Data(c);
+            if old != new {
+                self.pixels[index] = new;
+                self.dirty = true;
+            }
+        }
+    }
+
+    pub fn unset(&mut self, x: u32, y: u32) {
+        if x > self.width || y > self.height {
+            error!("invalid coordinates: ({}, {})", x, y);
+        } else {
+            let index = (x + y * self.width) as usize;
+            let old = self.pixels[index];
+            if old != Pixel::Blank {
+                self.pixels[index] = Pixel::Blank;
+                self.dirty = true;
+            }
         }
     }
 }
@@ -99,7 +116,7 @@ impl Context {
                 width: width,
                 height: height,
                 pixels: vec![Pixel::Blank; (width * height) as usize],
-                dirty: false,
+                dirty: true,
             },
         })
     }
