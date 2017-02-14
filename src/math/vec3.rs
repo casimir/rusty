@@ -1,10 +1,18 @@
-use std::num::Float;
 use std::ops::{Add, Div, Mul, Sub};
 
-pub struct Vector { 
+pub type Angle = f32;
+
+#[derive(Copy, Clone)]
+pub struct Vertex {
     pub x: f32,
     pub y: f32,
-    pub z: f32 
+    pub z: f32,
+}
+
+pub struct Vector {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 impl Vector {
@@ -14,8 +22,20 @@ impl Vector {
 
     pub fn normalize(&self) -> Vector {
         match self.norm() {
-            0.0 => Vector { x: 0.0, y: 0.0, z: 0.0 },
-            n => Vector { x: self.x / n, y: self.y / n, z: self.z / n }
+            0.0 => {
+                Vector {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                }
+            }
+            n => {
+                Vector {
+                    x: self.x / n,
+                    y: self.y / n,
+                    z: self.z / n,
+                }
+            }
         }
     }
 
@@ -23,7 +43,7 @@ impl Vector {
         Vector {
             x: self.y * v.z - self.z * v.y,
             y: self.z * v.x - self.x * v.z,
-            z: self.x * v.y - self.y * v.x
+            z: self.x * v.y - self.y * v.x,
         }
     }
 
@@ -35,11 +55,11 @@ impl Vector {
 impl Add for Vector {
     type Output = Vector;
 
-    fn add(self, _rhs: Vector) -> Vector {
+    fn add(self, rhs: Vector) -> Vector {
         Vector {
-            x: self.x + _rhs.x,
-            y: self.y + _rhs.y,
-            z: self.z + _rhs.z
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
         }
     }
 }
@@ -47,11 +67,11 @@ impl Add for Vector {
 impl Div<f32> for Vector {
     type Output = Vector;
 
-    fn div(self, _rhs: f32) -> Vector {
+    fn div(self, rhs: f32) -> Vector {
         Vector {
-            x: self.x / _rhs,
-            y: self.y / _rhs,
-            z: self.z / _rhs
+            x: self.x / rhs,
+            y: self.y / rhs,
+            z: self.z / rhs,
         }
     }
 }
@@ -59,11 +79,11 @@ impl Div<f32> for Vector {
 impl Mul<f32> for Vector {
     type Output = Vector;
 
-    fn mul(self, _rhs: f32) -> Vector {
+    fn mul(self, rhs: f32) -> Vector {
         Vector {
-            x: self.x * _rhs,
-            y: self.y * _rhs,
-            z: self.z * _rhs
+            x: self.x * rhs,
+            y: self.y * rhs,
+            z: self.z * rhs,
         }
     }
 }
@@ -71,11 +91,11 @@ impl Mul<f32> for Vector {
 impl Sub for Vector {
     type Output = Vector;
 
-    fn sub(self, _rhs: Vector) -> Vector {
+    fn sub(self, rhs: Vector) -> Vector {
         Vector {
-            x: self.x - _rhs.x,
-            y: self.y - _rhs.y,
-            z: self.z - _rhs.z
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
         }
     }
 }
