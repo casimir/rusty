@@ -6,7 +6,20 @@ use self::sdl2::keyboard::Keycode;
 use self::sdl2::pixels::Color::RGB;
 use self::sdl2::render::Renderer;
 use self::sdl2::rect::Point;
+use std::str::FromStr;
 use std::time::Duration;
+
+#[derive(Debug, PartialEq)]
+pub enum ColorError {
+    InvalidColorError,
+    ConversionError(::std::num::ParseIntError),
+}
+
+impl From<::std::num::ParseIntError> for ColorError {
+    fn from(val: ::std::num::ParseIntError) -> ColorError {
+        ColorError::ConversionError(val)
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Color {
@@ -16,7 +29,36 @@ pub struct Color {
     pub a: u8,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+impl FromStr for Color {
+    type Err = ColorError;
+
+    fn from_str(src: &str) -> Result<Color, ColorError> {
+        if !src.starts_with('#') {
+            return Err(ColorError::InvalidColorError);
+        }
+        match src.chars().count() {
+            7usize => {
+                Ok(Color {
+                    r: u8::from_str_radix(&src[1..3], 16)?,
+                    g: u8::from_str_radix(&src[3..5], 16)?,
+                    b: u8::from_str_radix(&src[5..], 16)?,
+                    a: 255,
+                })
+            }
+            9usize => {
+                Ok(Color {
+                    r: u8::from_str_radix(&src[1..3], 16)?,
+                    g: u8::from_str_radix(&src[3..5], 16)?,
+                    b: u8::from_str_radix(&src[5..7], 16)?,
+                    a: u8::from_str_radix(&src[7..], 16)?,
+                })
+            }
+            _ => Err(ColorError::InvalidColorError),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Pixel {
     Data(Color),
     Blank,
@@ -30,6 +72,15 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    pub fn new(width: u32, height: u32) -> Canvas {
+        Canvas {
+            width: width,
+            height: height,
+            pixels: vec![Pixel::Blank; (width * height) as usize],
+            dirty: true,
+        }
+    }
+
     pub fn get(&self, x: u32, y: u32) -> Pixel {
         if x > self.width || y > self.height {
             error!("invalid coordinates: ({}, {})", x, y);
@@ -112,26 +163,18 @@ impl Context {
         Ok(Context {
             context: sdl_context,
             renderer: renderer,
-            canvas: Canvas {
-                width: width,
-                height: height,
-                pixels: vec![Pixel::Blank; (width * height) as usize],
-                dirty: true,
-            },
+            canvas: Canvas::new(width, height),
         })
     }
 
     pub fn paint(&mut self) {
         if self.canvas.dirty {
-            let ref mut rend = self.renderer;
+            let rend = &mut self.renderer;
             for x in 0..self.canvas.width {
                 for y in 0..self.canvas.height {
-                    match self.canvas.get(x, y) {
-                        Pixel::Data(color) => {
-                            rend.set_draw_color(RGB(color.r, color.g, color.b));
-                            rend.draw_point(Point::new(x as i32, y as i32));
-                        }
-                        Pixel::Blank => {}
+                    if let Pixel::Data(color) = self.canvas.get(x, y) {
+                        rend.set_draw_color(RGB(color.r, color.g, color.b));
+                        rend.draw_point(Point::new(x as i32, y as i32));
                     };
                 }
             }
