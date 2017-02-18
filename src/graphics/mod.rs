@@ -7,7 +7,9 @@ use self::sdl2::pixels::Color::RGB;
 use self::sdl2::render::Renderer;
 use self::sdl2::rect::Point;
 use std::str::FromStr;
+use std::sync::mpsc;
 use std::time::Duration;
+use std::thread;
 
 #[derive(Debug, PartialEq)]
 pub enum ColorError {
@@ -144,10 +146,18 @@ impl From<::std::io::Error> for Error {
     }
 }
 
+#[derive(Debug)]
+pub struct CoordPixel {
+    pub pixel: Pixel,
+    pub x: u32,
+    pub y: u32,
+}
+
 pub struct Context {
-    pub canvas: Canvas,
-    pub context: sdl2::Sdl,
+    context: sdl2::Sdl,
+    canvas: Canvas,
     renderer: Renderer<'static>,
+    drawer_rx: Option<mpsc::Receiver<CoordPixel>>,
 }
 
 impl Context {
@@ -162,12 +172,22 @@ impl Context {
 
         Ok(Context {
             context: sdl_context,
-            renderer: renderer,
             canvas: Canvas::new(width, height),
+            renderer: renderer,
+            drawer_rx: None,
         })
     }
 
     pub fn paint(&mut self) {
+        if let Some(rx) = self.drawer_rx.take() {
+            for point in rx.try_iter() {
+                match point.pixel {
+                    Pixel::Data(color) => self.canvas.set(point.x, point.y, color),
+                    Pixel::Blank => self.canvas.unset(point.x, point.y),
+                }
+            }
+            self.drawer_rx = Some(rx);
+        }
         if self.canvas.dirty {
             let rend = &mut self.renderer;
             for x in 0..self.canvas.width {
@@ -182,6 +202,17 @@ impl Context {
             rend.present();
             // XXX show metrics
         }
+    }
+
+    pub fn draw(&mut self, drawer: fn(u32, u32, mpsc::Sender<CoordPixel>)) {
+        if let Some(rx) = self.drawer_rx.take() {
+            drop(rx);
+        }
+        let (tx, rx) = mpsc::channel();
+        self.drawer_rx = Some(rx);
+        let width = self.canvas.width;
+        let height = self.canvas.height;
+        thread::spawn(move || { drawer(width, height, tx); });
     }
 
     pub fn export(&self) -> Result<String, Error> {
@@ -213,9 +244,11 @@ impl Context {
                     _ => {}
                 }
             }
-
             self.paint();
-            ::std::thread::sleep(Duration::from_millis(17));
+            thread::sleep(Duration::from_millis(17));
+        }
+        if let Some(rx) = self.drawer_rx.take() {
+            drop(rx);
         }
         Ok(())
     }
