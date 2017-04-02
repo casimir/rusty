@@ -41,19 +41,19 @@ impl FromStr for Color {
         match src.chars().count() {
             7usize => {
                 Ok(Color {
-                    r: u8::from_str_radix(&src[1..3], 16)?,
-                    g: u8::from_str_radix(&src[3..5], 16)?,
-                    b: u8::from_str_radix(&src[5..], 16)?,
-                    a: 255,
-                })
+                       r: u8::from_str_radix(&src[1..3], 16)?,
+                       g: u8::from_str_radix(&src[3..5], 16)?,
+                       b: u8::from_str_radix(&src[5..], 16)?,
+                       a: 255,
+                   })
             }
             9usize => {
                 Ok(Color {
-                    r: u8::from_str_radix(&src[1..3], 16)?,
-                    g: u8::from_str_radix(&src[3..5], 16)?,
-                    b: u8::from_str_radix(&src[5..7], 16)?,
-                    a: u8::from_str_radix(&src[7..], 16)?,
-                })
+                       r: u8::from_str_radix(&src[1..3], 16)?,
+                       g: u8::from_str_radix(&src[3..5], 16)?,
+                       b: u8::from_str_radix(&src[5..7], 16)?,
+                       a: u8::from_str_radix(&src[7..], 16)?,
+                   })
             }
             _ => Err(ColorError::InvalidColorError),
         }
@@ -171,11 +171,11 @@ impl Context {
         let renderer = window.renderer().build()?;
 
         Ok(Context {
-            context: sdl_context,
-            canvas: Canvas::new(width, height),
-            renderer: renderer,
-            drawer_rx: None,
-        })
+               context: sdl_context,
+               canvas: Canvas::new(width, height),
+               renderer: renderer,
+               drawer_rx: None,
+           })
     }
 
     pub fn paint(&mut self) {

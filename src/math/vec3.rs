@@ -1,7 +1,5 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-pub type Angle = f32;
-
 #[derive(Copy, Clone)]
 pub struct Vertex {
     pub x: f32,
@@ -9,6 +7,7 @@ pub struct Vertex {
     pub z: f32,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vector {
     pub x: f32,
     pub y: f32,
@@ -16,6 +15,14 @@ pub struct Vector {
 }
 
 impl Vector {
+    pub fn from_vertices(v1: Vertex, v2: Vertex) -> Vector {
+        Vector {
+            x: v2.x - v1.x,
+            y: v2.y - v1.y,
+            z: v2.z - v1.z,
+        }
+    }
+
     pub fn norm(&self) -> f32 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
     }

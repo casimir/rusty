@@ -30,11 +30,12 @@ fn fill_part(w: u32, h: u32, start: u32, end: u32, tx: Sender<CoordPixel>) {
                 x: x,
                 y: y,
                 pixel: Pixel::Data(Color {
-                    r: (x as f64 / w as f64 * 255.0) as u8,
-                    g: (y as f64 / h as f64 * 255.0) as u8,
-                    b: (((x * y) as f64 / (h.pow(2) + w.pow(2)) as f64).sqrt() * 255.0) as u8,
-                    a: 255,
-                }),
+                                       r: (x as f64 / w as f64 * 255.0) as u8,
+                                       g: (y as f64 / h as f64 * 255.0) as u8,
+                                       b: (((x * y) as f64 / (h.pow(2) + w.pow(2)) as f64).sqrt() *
+                                           255.0) as u8,
+                                       a: 255,
+                                   }),
             };
             std::thread::sleep(std::time::Duration::from_millis(1));
             tx.send(pixel);

@@ -3,34 +3,39 @@ extern crate env_logger;
 
 use std::sync::mpsc::Sender;
 
-mod math;
-
-use rusty::graphics::{Color, CoordPixel, Pixel};
+use rusty::graphics::{Context, CoordPixel, Pixel};
+use rusty::math::vec3::Vertex;
+use rusty::tracer::{Object, Screen};
+use rusty::tracer::objects::Sphere;
 
 pub fn main() {
     env_logger::init().unwrap();
 
-    let mut gui = rusty::graphics::Context::new(800, 600).unwrap();
-    gui.draw(colormap);
+    let mut gui = Context::new(800, 600).unwrap();
+    gui.draw(raytracer);
     gui.run().unwrap();
 }
 
-fn colormap(w: u32, h: u32, tx: Sender<CoordPixel>) {
-    for y in 0..h {
-        for x in 0..w {
+fn raytracer(w: u32, h: u32, tx: Sender<CoordPixel>) {
+    let obj = Sphere {
+        center: Vertex {
+            x: 0.0,
+            y: 0.0,
+            z: -10.0,
+        },
+        radius: 2.0,
+    };
+
+    for (point, ray) in Screen::new(w, h) {
+        if let Some(distance) = obj.intercept(&ray) {
             let pixel = CoordPixel {
-                x: x,
-                y: y,
-                pixel: Pixel::Data(Color {
-                    r: (x as f64 / w as f64 * 255.0) as u8,
-                    g: (y as f64 / h as f64 * 255.0) as u8,
-                    b: (((x * y) as f64 / (h.pow(2) + w.pow(2)) as f64).sqrt() * 255.0) as u8,
-                    a: 255,
-                }),
+                x: point.0,
+                y: point.1,
+                pixel: Pixel::Data(obj.color()),
             };
-            std::thread::sleep(std::time::Duration::from_millis(1));
             tx.send(pixel);
         }
     }
     drop(tx);
+    println!("It's over S");
 }
