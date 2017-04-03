@@ -6,6 +6,31 @@ use math::vec3::{Vector, Vertex};
 use tracer::{Object, Ray};
 
 #[derive(Copy, Clone)]
+pub struct Plane {
+    pub point: Vertex,
+    pub normal: Vector,
+    pub base_color: Color,
+}
+
+impl Object for Plane {
+    fn color(&self) -> Color {
+        self.base_color
+    }
+
+    fn intercept(&self, ray: &Ray) -> Option<f32> {
+        let denom = self.normal.dot(ray.direction);
+        if denom > 1e-6 {
+            let v = Vector::from_vertices(ray.origin, self.point);
+            let distance = v.dot(self.normal) / denom;
+            if distance >= 0.0 {
+                return Some(distance);
+            }
+        }
+        None
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct Sphere {
     pub center: Vertex,
     pub radius: f32,
@@ -13,10 +38,6 @@ pub struct Sphere {
 }
 
 impl Object for Sphere {
-    fn anchor(&self) -> Vertex {
-        self.center
-    }
-
     fn color(&self) -> Color {
         self.base_color
     }

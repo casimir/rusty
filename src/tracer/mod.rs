@@ -79,7 +79,6 @@ impl Iterator for Screen {
 }
 
 pub trait Object {
-    fn anchor(&self) -> Vertex;
     fn color(&self) -> Color;
     fn intercept(&self, ray: &Ray) -> Option<f32>;
 }
