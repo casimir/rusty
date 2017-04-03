@@ -1,7 +1,5 @@
-use std::cmp;
-
 use graphics::Color;
-use math::{Radian, QuadraticSolution, solve_quadratic};
+use math::{QuadraticSolution, solve_quadratic};
 use math::vec3::{Vector, Vertex};
 use tracer::{Object, Ray};
 
@@ -27,6 +25,10 @@ impl Object for Plane {
             }
         }
         None
+    }
+
+    fn compute_normal(&self, _: Vertex) -> Vector {
+        self.normal * -1.0
     }
 }
 
@@ -60,5 +62,9 @@ impl Object for Sphere {
             QuadraticSolution::One(x) => if x > 0.0 { Some(x) } else { None },
             QuadraticSolution::None => None,
         }
+    }
+
+    fn compute_normal(&self, hitpoint: Vertex) -> Vector {
+        Vector::from_vertices(self.center, hitpoint).normalize()
     }
 }

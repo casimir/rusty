@@ -23,6 +23,16 @@ fn color_init() {
 }
 
 #[test]
+fn color_mult() {
+    assert_eq!("#222222".parse::<Color>().unwrap() * 0.5,
+               "#111111".parse::<Color>().unwrap());
+    assert_eq!("#222222".parse::<Color>().unwrap() * 1.0,
+               "#222222".parse::<Color>().unwrap());
+    assert_eq!("#222222".parse::<Color>().unwrap() * 2.0,
+               "#444444".parse::<Color>().unwrap());
+}
+
+#[test]
 fn canvas_manipulation() {
     let color = Color {
         r: 255,

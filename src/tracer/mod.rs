@@ -5,7 +5,6 @@ pub mod objects;
 use self::rand::Rng;
 
 use graphics::Color;
-use math::Radian;
 use math::vec3::{Vector, Vertex};
 
 pub enum RayKind {
@@ -81,4 +80,11 @@ impl Iterator for Screen {
 pub trait Object {
     fn color(&self) -> Color;
     fn intercept(&self, ray: &Ray) -> Option<f32>;
+    fn compute_normal(&self, hitpoint: Vertex) -> Vector;
+}
+
+pub struct Light {
+    pub direction: Vector,
+    pub color: Color,
+    pub intensity: f32,
 }

@@ -6,6 +6,7 @@ use self::sdl2::keyboard::Keycode;
 use self::sdl2::pixels::Color::RGB;
 use self::sdl2::render::Renderer;
 use self::sdl2::rect::Point;
+use std::ops::Mul;
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -56,6 +57,19 @@ impl FromStr for Color {
                    })
             }
             _ => Err(ColorError::InvalidColorError),
+        }
+    }
+}
+
+impl Mul<f32> for Color {
+    type Output = Color;
+
+    fn mul(self, rhs: f32) -> Self {
+        Color {
+            r: (self.r as f32 * rhs) as u8,
+            g: (self.g as f32 * rhs) as u8,
+            b: (self.b as f32 * rhs) as u8,
+            a: self.a,
         }
     }
 }
