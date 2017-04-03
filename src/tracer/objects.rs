@@ -9,6 +9,7 @@ use tracer::{Object, Ray};
 pub struct Sphere {
     pub center: Vertex,
     pub radius: f32,
+    pub base_color: Color,
 }
 
 impl Object for Sphere {
@@ -17,7 +18,7 @@ impl Object for Sphere {
     }
 
     fn color(&self) -> Color {
-        "#00FFFF".parse().unwrap()
+        self.base_color
     }
 
     fn intercept(&self, ray: &Ray) -> Option<f32> {
