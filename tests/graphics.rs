@@ -30,6 +30,9 @@ fn color_mult() {
                "#222222".parse::<Color>().unwrap());
     assert_eq!("#222222".parse::<Color>().unwrap() * 2.0,
                "#444444".parse::<Color>().unwrap());
+
+    assert_eq!("#222222".parse::<Color>().unwrap() * "#00FF80".parse::<Color>().unwrap(),
+               "#002211".parse::<Color>().unwrap())
 }
 
 #[test]

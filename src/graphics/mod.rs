@@ -61,6 +61,19 @@ impl FromStr for Color {
     }
 }
 
+impl Mul for Color {
+    type Output = Color;
+
+    fn mul(self, rhs: Color) -> Self {
+        Color {
+            r: (self.r as f32 * (rhs.r as f32) / 255.0) as u8,
+            g: (self.g as f32 * (rhs.g as f32) / 255.0) as u8,
+            b: (self.b as f32 * (rhs.b as f32) / 255.0) as u8,
+            a: (self.a as f32 * (rhs.a as f32) / 255.0) as u8,
+        }
+    }
+}
+
 impl Mul<f32> for Color {
     type Output = Color;
 

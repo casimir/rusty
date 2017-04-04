@@ -64,7 +64,7 @@ fn raytracer(w: u32, h: u32, tx: Sender<CoordPixel>) {
             y: -1.0,
             z: -0.5,
         },
-        color: "#000000".parse().unwrap(),
+        color: "#FFFFFF".parse().unwrap(),
         intensity: 1.0,
     };
 
@@ -80,7 +80,7 @@ fn raytracer(w: u32, h: u32, tx: Sender<CoordPixel>) {
                 let normal = obj.compute_normal(hitpoint);
                 let light_direction = light.direction.normalize() * -1.0;
                 let light_power = normal.dot(light_direction).max(0.0) * light.intensity;
-                let color = obj.color() * light_power;
+                let color = obj.color() * light.color * light_power;
                 if let Some((_, d)) = intercepter {
                     if distance < d {
                         intercepter = Some((color, distance));
