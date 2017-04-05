@@ -83,8 +83,52 @@ pub trait Object {
     fn compute_normal(&self, hitpoint: Vertex) -> Vector;
 }
 
+pub struct Interception<'a> {
+    pub object: &'a Box<Object>,
+    pub distance: f32,
+    pub hitpoint: Vertex,
+}
+
+impl<'a> Interception<'a> {
+    pub fn new<'b>(object: &'b Box<Object>, ray: &Ray, distance: f32) -> Interception<'b> {
+        Interception {
+            object: object,
+            distance: distance,
+            hitpoint: Vertex {
+                x: ray.origin.x + ray.direction.x * distance,
+                y: ray.origin.y + ray.direction.y * distance,
+                z: ray.origin.z + ray.direction.z * distance,
+            },
+        }
+    }
+}
+
 pub struct Light {
     pub direction: Vector,
     pub color: Color,
     pub intensity: f32,
+}
+
+pub struct Scene {
+    pub objects: Vec<Box<Object>>,
+}
+
+impl Scene {
+    pub fn new() -> Scene {
+        Scene { objects: Vec::new() }
+    }
+
+    pub fn register_object(&mut self, object: Box<Object>) {
+        self.objects.push(object)
+    }
+
+    pub fn trace(&self, ray: &Ray) -> Option<Interception> {
+        self.objects
+            .iter()
+            .filter_map(|obj| {
+                            obj.intercept(ray)
+                                .map(|dist| Interception::new(obj, ray, dist))
+                        })
+            .min_by(|d1, d2| d1.distance.partial_cmp(&d2.distance).unwrap())
+    }
 }
