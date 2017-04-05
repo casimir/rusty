@@ -83,5 +83,5 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         }
     }
     drop(tx);
-    println!("It's over S");
+    println!("rays: {:?}", scene.statistics.rays);
 }

@@ -3,10 +3,12 @@ extern crate rand;
 pub mod objects;
 
 use self::rand::Rng;
+use std::collections::HashMap;
 
 use graphics::Color;
 use math::vec3::{Vector, Vertex};
 
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum RayKind {
     Primary,
     Shadow,
@@ -109,20 +111,40 @@ pub struct Light {
     pub intensity: f32,
 }
 
+pub struct Statistics {
+    pub rays: HashMap<RayKind, usize>,
+}
+
+impl Statistics {
+    pub fn new() -> Statistics {
+        Statistics { rays: HashMap::new() }
+    }
+
+    pub fn count_ray(&mut self, ray: &Ray) {
+        let counter = self.rays.entry(ray.kind.clone()).or_insert(0);
+        *counter += 1;
+    }
+}
+
 pub struct Scene {
     pub objects: Vec<Box<Object>>,
+    pub statistics: Statistics,
 }
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene { objects: Vec::new() }
+        Scene {
+            objects: Vec::new(),
+            statistics: Statistics::new(),
+        }
     }
 
     pub fn register_object(&mut self, object: Box<Object>) {
         self.objects.push(object)
     }
 
-    pub fn trace(&self, ray: &Ray) -> Option<Interception> {
+    pub fn trace(&mut self, ray: &Ray) -> Option<Interception> {
+        self.statistics.count_ray(ray);
         self.objects
             .iter()
             .filter_map(|obj| {
