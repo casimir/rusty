@@ -128,29 +128,21 @@ impl Statistics {
 
 pub struct Scene {
     pub objects: Vec<Box<Object>>,
-    pub statistics: Statistics,
 }
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene {
-            objects: Vec::new(),
-            statistics: Statistics::new(),
-        }
+        Scene { objects: Vec::new() }
     }
 
     pub fn register_object(&mut self, object: Box<Object>) {
         self.objects.push(object)
     }
 
-    pub fn trace(&mut self, ray: &Ray) -> Option<Interception> {
-        self.statistics.count_ray(ray);
+    pub fn trace(&self, ray: &Ray) -> Option<Interception> {
         self.objects
             .iter()
-            .filter_map(|obj| {
-                            obj.intercept(ray)
-                                .map(|dist| Interception::new(obj, ray, dist))
-                        })
+            .filter_map(|o| o.intercept(ray).map(|d| Interception::new(o, ray, d)))
             .min_by(|d1, d2| d1.distance.partial_cmp(&d2.distance).unwrap())
     }
 }

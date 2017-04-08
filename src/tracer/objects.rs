@@ -28,7 +28,7 @@ impl Object for Plane {
     }
 
     fn compute_normal(&self, _: Vertex) -> Vector {
-        self.normal * -1.0
+        -self.normal
     }
 }
 
@@ -51,12 +51,14 @@ impl Object for Sphere {
         let c = l.dot(l) - self.radius.powi(2);
         match solve_quadratic(a, b, c) {
             QuadraticSolution::Two(x1, x2) => {
-                if x1 > 0.0 && x2 > 0.0 {
-                    if x1 > x2 { Some(x2) } else { Some(x1) }
-                } else if x1 > 0.0 {
+                if x1 > 1e-6 && x2 > 1e-6 {
+                    Some(x2.min(x1))
+                } else if x1 > 1e-6 {
                     Some(x1)
-                } else {
+                } else if x2 > 1e-6 {
                     Some(x2)
+                } else {
+                    None
                 }
             }
             QuadraticSolution::One(x) => if x > 0.0 { Some(x) } else { None },
