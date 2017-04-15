@@ -81,6 +81,7 @@ impl Iterator for Screen {
 
 pub trait Object {
     fn color(&self) -> Color;
+    fn albedo(&self) -> f32;
     fn intercept(&self, ray: &Ray) -> Option<f32>;
     fn compute_normal(&self, hitpoint: Vertex) -> Vector;
 }
@@ -128,15 +129,15 @@ impl Statistics {
 
 pub struct Scene {
     pub objects: Vec<Box<Object>>,
+    pub lights: Vec<Box<Light>>,
 }
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene { objects: Vec::new() }
-    }
-
-    pub fn register_object(&mut self, object: Box<Object>) {
-        self.objects.push(object)
+        Scene {
+            objects: Vec::new(),
+            lights: Vec::new(),
+        }
     }
 
     pub fn trace(&self, ray: &Ray) -> Option<Interception> {

@@ -23,6 +23,14 @@ fn color_init() {
 }
 
 #[test]
+fn color_add() {
+    assert_eq!("#112244".parse::<Color>().unwrap() + "#112244".parse::<Color>().unwrap(),
+               "#224488".parse::<Color>().unwrap());
+    assert_eq!("#FFFF00".parse::<Color>().unwrap() + "#00FF80".parse::<Color>().unwrap(),
+               "#FFFF80".parse::<Color>().unwrap())
+}
+
+#[test]
 fn color_mult() {
     assert_eq!("#222222".parse::<Color>().unwrap() * 0.5,
                "#111111".parse::<Color>().unwrap());

@@ -6,7 +6,7 @@ use self::sdl2::keyboard::Keycode;
 use self::sdl2::pixels::Color::RGB;
 use self::sdl2::render::Renderer;
 use self::sdl2::rect::Point;
-use std::ops::Mul;
+use std::ops::{Add, AddAssign, Mul};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -30,6 +30,17 @@ pub struct Color {
     pub g: u8,
     pub b: u8,
     pub a: u8,
+}
+
+impl Default for Color {
+    fn default() -> Color {
+        Color {
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 255,
+        }
+    }
 }
 
 impl FromStr for Color {
@@ -58,6 +69,29 @@ impl FromStr for Color {
             }
             _ => Err(ColorError::InvalidColorError),
         }
+    }
+}
+
+fn color_channel_addition(a: u8, b: u8) -> u8 {
+    if a < 255 - b { a + b } else { 255 }
+}
+
+impl Add for Color {
+    type Output = Color;
+
+    fn add(self, rhs: Color) -> Self {
+        Color {
+            r: color_channel_addition(self.r, rhs.r),
+            g: color_channel_addition(self.g, rhs.g),
+            b: color_channel_addition(self.b, rhs.b),
+            a: color_channel_addition(self.a, rhs.a),
+        }
+    }
+}
+
+impl AddAssign for Color {
+    fn add_assign(&mut self, rhs: Color) {
+        *self = *self + rhs
     }
 }
 

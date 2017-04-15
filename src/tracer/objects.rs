@@ -8,11 +8,16 @@ pub struct Plane {
     pub point: Vertex,
     pub normal: Vector,
     pub base_color: Color,
+    pub base_albedo: f32,
 }
 
 impl Object for Plane {
     fn color(&self) -> Color {
         self.base_color
+    }
+
+    fn albedo(&self) -> f32 {
+        self.base_albedo
     }
 
     fn intercept(&self, ray: &Ray) -> Option<f32> {
@@ -37,11 +42,16 @@ pub struct Sphere {
     pub center: Vertex,
     pub radius: f32,
     pub base_color: Color,
+    pub base_albedo: f32,
 }
 
 impl Object for Sphere {
     fn color(&self) -> Color {
         self.base_color
+    }
+
+    fn albedo(&self) -> f32 {
+        self.base_albedo
     }
 
     fn intercept(&self, ray: &Ray) -> Option<f32> {
@@ -61,7 +71,7 @@ impl Object for Sphere {
                     None
                 }
             }
-            QuadraticSolution::One(x) => if x > 0.0 { Some(x) } else { None },
+            QuadraticSolution::One(x) => if x > 1e-6 { Some(x) } else { None },
             QuadraticSolution::None => None,
         }
     }
