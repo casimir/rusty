@@ -26,15 +26,15 @@ fn fill_part(w: u32, h: u32, start: u32, end: u32, tx: Sender<CoordPixel>) {
     println!("worker: {:3} -> {:3}", start, end);
     for y in start..end {
         for x in 0..w {
+            let blue = (((x * y) as f64 / (h.pow(2) + w.pow(2)) as f64).sqrt() * 0xff as f64) as u8;
             let pixel = CoordPixel {
                 x: x,
                 y: y,
                 pixel: Pixel::Data(Color {
-                                       r: (x as f64 / w as f64 * 255.0) as u8,
-                                       g: (y as f64 / h as f64 * 255.0) as u8,
-                                       b: (((x * y) as f64 / (h.pow(2) + w.pow(2)) as f64).sqrt() *
-                                           255.0) as u8,
-                                       a: 255,
+                                       r: (x as f64 / w as f64 * 0xff as f64) as u8,
+                                       g: (y as f64 / h as f64 * 0xff as f64) as u8,
+                                       b: blue,
+                                       a: 0xff,
                                    }),
             };
             std::thread::sleep(std::time::Duration::from_millis(1));

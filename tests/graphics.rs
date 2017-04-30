@@ -6,17 +6,17 @@ use rusty::graphics::*;
 fn color_init() {
     assert_eq!("#01020310".parse::<Color>(),
                Ok(Color {
-                      r: 1,
-                      g: 2,
-                      b: 3,
-                      a: 16,
+                      r: 0x01,
+                      g: 0x02,
+                      b: 0x03,
+                      a: 0x10,
                   }));
     assert_eq!("#FF1493".parse::<Color>(),
                Ok(Color {
-                      r: 255,
-                      g: 20,
-                      b: 147,
-                      a: 255,
+                      r: 0xff,
+                      g: 0x14,
+                      b: 0x93,
+                      a: 0xff,
                   }));
     assert_eq!("nope".parse::<Color>(), Err(ColorError::InvalidColorError));
     assert!("#42".parse::<Color>().is_err());
@@ -46,10 +46,10 @@ fn color_mult() {
 #[test]
 fn canvas_manipulation() {
     let color = Color {
-        r: 255,
-        g: 255,
-        b: 255,
-        a: 255,
+        r: 0xff,
+        g: 0xff,
+        b: 0xff,
+        a: 0xff,
     };
     let mut canvas = Canvas::new(1, 1);
     assert_eq!(canvas.get(0, 0), Pixel::Blank);

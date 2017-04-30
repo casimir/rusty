@@ -35,10 +35,10 @@ pub struct Color {
 impl Default for Color {
     fn default() -> Color {
         Color {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 255,
+            r: 0x00,
+            g: 0x00,
+            b: 0x00,
+            a: 0xff,
         }
     }
 }
@@ -56,7 +56,7 @@ impl FromStr for Color {
                        r: u8::from_str_radix(&src[1..3], 16)?,
                        g: u8::from_str_radix(&src[3..5], 16)?,
                        b: u8::from_str_radix(&src[5..], 16)?,
-                       a: 255,
+                       a: 0xff,
                    })
             }
             9usize => {
@@ -73,7 +73,7 @@ impl FromStr for Color {
 }
 
 fn color_channel_addition(a: u8, b: u8) -> u8 {
-    if a < 255 - b { a + b } else { 255 }
+    if a < 0xff - b { a + b } else { 0xff }
 }
 
 impl Add for Color {
@@ -100,10 +100,10 @@ impl Mul for Color {
 
     fn mul(self, rhs: Color) -> Self {
         Color {
-            r: (self.r as f32 * (rhs.r as f32) / 255.0) as u8,
-            g: (self.g as f32 * (rhs.g as f32) / 255.0) as u8,
-            b: (self.b as f32 * (rhs.b as f32) / 255.0) as u8,
-            a: (self.a as f32 * (rhs.a as f32) / 255.0) as u8,
+            r: (self.r as f32 * (rhs.r as f32) / 0xff as f32) as u8,
+            g: (self.g as f32 * (rhs.g as f32) / 0xff as f32) as u8,
+            b: (self.b as f32 * (rhs.b as f32) / 0xff as f32) as u8,
+            a: (self.a as f32 * (rhs.a as f32) / 0xff as f32) as u8,
         }
     }
 }
@@ -284,7 +284,7 @@ impl Context {
                                            Pixel::Data(color) => {
                                                Rgba { data: [color.r, color.g, color.b, color.a] }
                                            }
-                                           Pixel::Blank => Rgba { data: [0, 0, 0, 0] },
+                                           Pixel::Blank => Rgba { data: [0x00, 0x00, 0x00, 0x00] },
                                        });
         let filename = "export.png";
         img.save(filename)?;
