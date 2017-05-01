@@ -9,5 +9,6 @@ image = "0.12"
 log = "0.3"
 rand = "0.3"
 sdl2 = "0.28"
+time = "0.1"
 
 # vim: ft=ini

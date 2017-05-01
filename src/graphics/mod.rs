@@ -1,5 +1,6 @@
 extern crate image;
 extern crate sdl2;
+extern crate time;
 
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
@@ -286,7 +287,9 @@ impl Context {
                                            }
                                            Pixel::Blank => Rgba { data: [0x00, 0x00, 0x00, 0x00] },
                                        });
-        let filename = "export.png";
+        let timestamp = time::strftime("%Y%m%d%H%M%S", &time::now())
+            .unwrap_or("notime".to_string());
+        let filename: &str = &format!("rusty_{}.png", timestamp);
         img.save(filename)?;
         println!("exported as: {}", filename);
         Ok(filename.into())
