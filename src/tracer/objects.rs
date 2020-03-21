@@ -77,7 +77,7 @@ impl RenderableObject for Plane {
 
     fn intercept(&self, ray: &Ray) -> Option<f32> {
         let denom = self.normal.dot(ray.direction);
-        if denom > 1e-6 {
+        if denom.is_sign_positive() {
             let v = Vector::from_vertices(ray.origin, self.point);
             let distance = v.dot(self.normal) / denom;
             if distance >= 0.0 {
@@ -116,18 +116,18 @@ impl RenderableObject for Sphere {
         let c = l.dot(l) - self.radius.powi(2);
         match solve_quadratic(a, b, c) {
             QuadraticSolution::Two(x1, x2) => {
-                if x1 > 1e-6 && x2 > 1e-6 {
+                if x1.is_sign_positive() && x2.is_sign_positive() {
                     Some(x2.min(x1))
-                } else if x1 > 1e-6 {
+                } else if x1.is_sign_positive() {
                     Some(x1)
-                } else if x2 > 1e-6 {
+                } else if x2.is_sign_positive() {
                     Some(x2)
                 } else {
                     None
                 }
             }
             QuadraticSolution::One(x) => {
-                if x > 1e-6 {
+                if x.is_sign_positive() {
                     Some(x)
                 } else {
                     None
