@@ -1,6 +1,6 @@
 use graphics::Color;
-use math::{QuadraticSolution, solve_quadratic};
 use math::vec3::{Vector, Vertex};
+use math::{solve_quadratic, QuadraticSolution};
 use tracer::{Object, Ray};
 
 #[derive(Copy, Clone)]
@@ -71,7 +71,13 @@ impl Object for Sphere {
                     None
                 }
             }
-            QuadraticSolution::One(x) => if x > 1e-6 { Some(x) } else { None },
+            QuadraticSolution::One(x) => {
+                if x > 1e-6 {
+                    Some(x)
+                } else {
+                    None
+                }
+            }
             QuadraticSolution::None => None,
         }
     }

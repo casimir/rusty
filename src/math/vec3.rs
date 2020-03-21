@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Sub, Neg};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vertex {
@@ -29,20 +29,16 @@ impl Vector {
 
     pub fn normalize(&self) -> Vector {
         match self.norm() {
-            0.0 => {
-                Vector {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 0.0,
-                }
-            }
-            n => {
-                Vector {
-                    x: self.x / n,
-                    y: self.y / n,
-                    z: self.z / n,
-                }
-            }
+            0.0 => Vector {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            },
+            n => Vector {
+                x: self.x / n,
+                y: self.y / n,
+                z: self.z / n,
+            },
         }
     }
 

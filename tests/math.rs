@@ -5,10 +5,14 @@ use rusty::math::*;
 #[test]
 fn quadratic() {
     assert_eq!(solve_quadratic(2.0, -4.0, 7.0), QuadraticSolution::None);
-    assert_eq!(solve_quadratic(-3.0, -24.0, -48.0),
-               QuadraticSolution::One(-4.0));
-    assert_eq!(solve_quadratic(4.0, -4.0, -24.0),
-               QuadraticSolution::Two(3.0, -2.0));
+    assert_eq!(
+        solve_quadratic(-3.0, -24.0, -48.0),
+        QuadraticSolution::One(-4.0)
+    );
+    assert_eq!(
+        solve_quadratic(4.0, -4.0, -24.0),
+        QuadraticSolution::Two(3.0, -2.0)
+    );
 }
 
 use rusty::math::vec3::*;

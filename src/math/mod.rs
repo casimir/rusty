@@ -31,7 +31,9 @@ pub fn solve_quadratic(a: f32, b: f32, c: f32) -> QuadraticSolution {
     } else if discriminant == 0.0 {
         QuadraticSolution::One(-0.5 * b / a)
     } else {
-        QuadraticSolution::Two((-1.0 * b + discriminant.sqrt()) / (2.0 * a),
-                               (-1.0 * b - discriminant.sqrt()) / (2.0 * a))
+        QuadraticSolution::Two(
+            (-1.0 * b + discriminant.sqrt()) / (2.0 * a),
+            (-1.0 * b - discriminant.sqrt()) / (2.0 * a),
+        )
     }
 }

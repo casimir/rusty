@@ -1,7 +1,7 @@
 extern crate rusty;
 
-use std::thread;
 use std::sync::mpsc::Sender;
+use std::thread;
 
 use rusty::graphics::{Color, Context, CoordPixel, Pixel};
 
@@ -18,7 +18,9 @@ fn drawer(w: u32, h: u32, tx: Sender<CoordPixel>) {
         let step = h / NUM_THREADS;
         let (start, end) = (step * i, step * (i + 1));
         let tx = tx.clone();
-        thread::spawn(move || { fill_part(w, h, start, end, tx); });
+        thread::spawn(move || {
+            fill_part(w, h, start, end, tx);
+        });
     }
 }
 
@@ -31,11 +33,11 @@ fn fill_part(w: u32, h: u32, start: u32, end: u32, tx: Sender<CoordPixel>) {
                 x: x,
                 y: y,
                 pixel: Pixel::Data(Color {
-                                       r: (x as f64 / w as f64 * 0xff as f64) as u8,
-                                       g: (y as f64 / h as f64 * 0xff as f64) as u8,
-                                       b: blue,
-                                       a: 0xff,
-                                   }),
+                    r: (x as f64 / w as f64 * 0xff as f64) as u8,
+                    g: (y as f64 / h as f64 * 0xff as f64) as u8,
+                    b: blue,
+                    a: 0xff,
+                }),
             };
             std::thread::sleep(std::time::Duration::from_millis(1));
             tx.send(pixel);

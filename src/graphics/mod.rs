@@ -5,13 +5,13 @@ extern crate time;
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
 use self::sdl2::pixels::Color::RGB;
-use self::sdl2::render::Renderer;
 use self::sdl2::rect::Point;
+use self::sdl2::render::Renderer;
 use std::ops::{Add, AddAssign, Mul};
 use std::str::FromStr;
 use std::sync::mpsc;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, PartialEq)]
 pub enum ColorError {
@@ -52,29 +52,29 @@ impl FromStr for Color {
             return Err(ColorError::InvalidColorError);
         }
         match src.chars().count() {
-            7usize => {
-                Ok(Color {
-                       r: u8::from_str_radix(&src[1..3], 16)?,
-                       g: u8::from_str_radix(&src[3..5], 16)?,
-                       b: u8::from_str_radix(&src[5..], 16)?,
-                       a: 0xff,
-                   })
-            }
-            9usize => {
-                Ok(Color {
-                       r: u8::from_str_radix(&src[1..3], 16)?,
-                       g: u8::from_str_radix(&src[3..5], 16)?,
-                       b: u8::from_str_radix(&src[5..7], 16)?,
-                       a: u8::from_str_radix(&src[7..], 16)?,
-                   })
-            }
+            7usize => Ok(Color {
+                r: u8::from_str_radix(&src[1..3], 16)?,
+                g: u8::from_str_radix(&src[3..5], 16)?,
+                b: u8::from_str_radix(&src[5..], 16)?,
+                a: 0xff,
+            }),
+            9usize => Ok(Color {
+                r: u8::from_str_radix(&src[1..3], 16)?,
+                g: u8::from_str_radix(&src[3..5], 16)?,
+                b: u8::from_str_radix(&src[5..7], 16)?,
+                a: u8::from_str_radix(&src[7..], 16)?,
+            }),
             _ => Err(ColorError::InvalidColorError),
         }
     }
 }
 
 fn color_channel_addition(a: u8, b: u8) -> u8 {
-    if a < 0xff - b { a + b } else { 0xff }
+    if a < 0xff - b {
+        a + b
+    } else {
+        0xff
+    }
 }
 
 impl Add for Color {
@@ -226,18 +226,19 @@ impl Context {
     pub fn new(width: u32, height: u32) -> Result<Context, Error> {
         let sdl_context = sdl2::init().unwrap();
         let video = sdl_context.video().unwrap();
-        let window = video.window("Rusty", width, height)
+        let window = video
+            .window("Rusty", width, height)
             .position_centered()
             .opengl()
             .build()?;
         let renderer = window.renderer().build()?;
 
         Ok(Context {
-               context: sdl_context,
-               canvas: Canvas::new(width, height),
-               renderer: renderer,
-               drawer_rx: None,
-           })
+            context: sdl_context,
+            canvas: Canvas::new(width, height),
+            renderer: renderer,
+            drawer_rx: None,
+        })
     }
 
     pub fn paint(&mut self) {
@@ -274,21 +275,25 @@ impl Context {
         self.drawer_rx = Some(rx);
         let width = self.canvas.width;
         let height = self.canvas.height;
-        thread::spawn(move || { drawer(width, height, tx); });
+        thread::spawn(move || {
+            drawer(width, height, tx);
+        });
     }
 
     pub fn export(&self) -> Result<String, Error> {
         use self::image::{ImageBuffer, Rgba};
-        let img = ImageBuffer::from_fn(self.canvas.width,
-                                       self.canvas.height,
-                                       |x, y| match self.canvas.get(x, y) {
-                                           Pixel::Data(color) => {
-                                               Rgba { data: [color.r, color.g, color.b, color.a] }
-                                           }
-                                           Pixel::Blank => Rgba { data: [0x00, 0x00, 0x00, 0x00] },
-                                       });
-        let timestamp = time::strftime("%Y%m%d%H%M%S", &time::now())
-            .unwrap_or("notime".to_string());
+        let img = ImageBuffer::from_fn(self.canvas.width, self.canvas.height, |x, y| {
+            match self.canvas.get(x, y) {
+                Pixel::Data(color) => Rgba {
+                    data: [color.r, color.g, color.b, color.a],
+                },
+                Pixel::Blank => Rgba {
+                    data: [0x00, 0x00, 0x00, 0x00],
+                },
+            }
+        });
+        let timestamp =
+            time::strftime("%Y%m%d%H%M%S", &time::now()).unwrap_or("notime".to_string());
         let filename: &str = &format!("rusty_{}.png", timestamp);
         img.save(filename)?;
         println!("exported as: {}", filename);
@@ -300,9 +305,15 @@ impl Context {
         'running: loop {
             for event in event_pump.poll_iter() {
                 match event {
-                    Event::Quit { .. } |
-                    Event::KeyDown { keycode: Some(Keycode::Q), .. } => break 'running,
-                    Event::KeyDown { keycode: Some(Keycode::E), .. } => {
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Q),
+                        ..
+                    } => break 'running,
+                    Event::KeyDown {
+                        keycode: Some(Keycode::E),
+                        ..
+                    } => {
                         self.export().unwrap();
                     }
                     _ => {}

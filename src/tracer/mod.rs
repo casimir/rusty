@@ -70,12 +70,14 @@ impl Iterator for Screen {
             y: 1.0 - ((point.1 + 0.5) / self.height) * 2.0,
             z: -1.0,
         };
-        Some(((point.0 as u32, point.1 as u32),
-              Ray {
-                  kind: RayKind::Primary,
-                  origin: origin,
-                  direction: Vector::from_vertices(origin, screen_vec),
-              }))
+        Some((
+            (point.0 as u32, point.1 as u32),
+            Ray {
+                kind: RayKind::Primary,
+                origin: origin,
+                direction: Vector::from_vertices(origin, screen_vec),
+            },
+        ))
     }
 }
 
@@ -118,7 +120,9 @@ pub struct Statistics {
 
 impl Statistics {
     pub fn new() -> Statistics {
-        Statistics { rays: HashMap::new() }
+        Statistics {
+            rays: HashMap::new(),
+        }
     }
 
     pub fn count_ray(&mut self, ray: &Ray) {
