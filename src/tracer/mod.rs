@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use crate::graphics::Color;
 use crate::math::vec3::{Vector, Vertex};
 use objects::Object;
-use rand::seq::SliceRandom;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum RayKind {
@@ -38,8 +37,6 @@ impl Screen {
                 points.push((x as f32, y as f32))
             }
         }
-        let mut rng = rand::thread_rng();
-        points.shuffle(&mut rng);
         Screen {
             width: width as f32,
             height: height as f32,
