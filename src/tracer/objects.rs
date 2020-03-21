@@ -1,7 +1,7 @@
-use graphics::Color;
-use math::vec3::{Vector, Vertex};
-use math::{solve_quadratic, QuadraticSolution};
-use tracer::{Object, Ray};
+use crate::graphics::Color;
+use crate::math::vec3::{Vector, Vertex};
+use crate::math::{solve_quadratic, QuadraticSolution};
+use crate::tracer::{Object, Ray};
 
 #[derive(Copy, Clone)]
 pub struct Plane {

@@ -1,12 +1,10 @@
-extern crate rand;
-
 pub mod objects;
 
-use self::rand::Rng;
 use std::collections::HashMap;
 
-use graphics::Color;
-use math::vec3::{Vector, Vertex};
+use crate::graphics::Color;
+use crate::math::vec3::{Vector, Vertex};
+use rand::Rng;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum RayKind {
@@ -22,7 +20,7 @@ pub struct Ray {
     pub direction: Vector,
 }
 
-pub type Tracer = Iterator<Item = Ray>;
+pub type Tracer = dyn Iterator<Item = Ray>;
 
 pub struct Screen {
     width: f32,
@@ -89,13 +87,13 @@ pub trait Object {
 }
 
 pub struct Interception<'a> {
-    pub object: &'a Box<Object>,
+    pub object: &'a Box<dyn Object>,
     pub distance: f32,
     pub hitpoint: Vertex,
 }
 
 impl<'a> Interception<'a> {
-    pub fn new<'b>(object: &'b Box<Object>, ray: &Ray, distance: f32) -> Interception<'b> {
+    pub fn new<'b>(object: &'b Box<dyn Object>, ray: &Ray, distance: f32) -> Interception<'b> {
         Interception {
             object: object,
             distance: distance,
@@ -132,7 +130,7 @@ impl Statistics {
 }
 
 pub struct Scene {
-    pub objects: Vec<Box<Object>>,
+    pub objects: Vec<Box<dyn Object>>,
     pub lights: Vec<Box<Light>>,
 }
 
