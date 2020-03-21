@@ -1,12 +1,9 @@
-extern crate env_logger;
-extern crate rusty;
-
 use std::sync::mpsc::Sender;
 
 use rusty::graphics::{Context, CoordPixel, Pixel};
 use rusty::math::vec3::{Vector, Vertex};
 use rusty::tracer::objects::{Plane, Sphere};
-use rusty::tracer::{Light, Ray, RayKind, Scene, Screen, Statistics};
+use rusty::tracer::{Light, Ray, RayKind, Scene, Screen};
 
 pub fn main() {
     env_logger::init();
@@ -17,9 +14,8 @@ pub fn main() {
 }
 
 fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
-    let mut scene = Scene::new();
-    let mut statistics = Statistics::new();
-    scene.objects.push(Box::new(Sphere {
+    let mut scene = Scene::default();
+    scene.add_object(Sphere {
         center: Vertex {
             x: 0.0,
             y: 0.0,
@@ -28,8 +24,8 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         radius: 2.0,
         base_color: "#00FFFF".parse().unwrap(),
         base_albedo: 0.8,
-    }));
-    scene.objects.push(Box::new(Sphere {
+    });
+    scene.add_object(Sphere {
         center: Vertex {
             x: -2.0,
             y: 2.0,
@@ -38,8 +34,8 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         radius: 2.0,
         base_color: "#FF00FF".parse().unwrap(),
         base_albedo: 0.6,
-    }));
-    scene.objects.push(Box::new(Sphere {
+    });
+    scene.add_object(Sphere {
         center: Vertex {
             x: 3.0,
             y: 0.0,
@@ -48,8 +44,8 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         radius: 5.0,
         base_color: "#FFFF00".parse().unwrap(),
         base_albedo: 0.7,
-    }));
-    scene.objects.push(Box::new(Sphere {
+    });
+    scene.add_object(Sphere {
         center: Vertex {
             x: 3.0,
             y: 10.0,
@@ -58,8 +54,8 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         radius: 3.0,
         base_color: "#CCCC00".parse().unwrap(),
         base_albedo: 0.8,
-    }));
-    scene.objects.push(Box::new(Plane {
+    });
+    scene.add_object(Plane {
         point: Vertex {
             x: 0.0,
             y: -5.0,
@@ -72,7 +68,7 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         },
         base_color: "#CCCCCC".parse().unwrap(),
         base_albedo: 0.5,
-    }));
+    });
     scene.lights.push(Box::new(Light {
         direction: Vector {
             x: -0.5,
@@ -92,17 +88,15 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         intensity: 0.4,
     }));
 
+    let lights = scene.lights.clone();
     for (point, ray) in Screen::new(width, height) {
-        let opt_interception = scene.trace(&ray);
-        statistics.count_ray(&ray);
-        if opt_interception.is_none() {
-            continue;
-        }
-
-        let interception = opt_interception.unwrap();
+        let interception = match scene.trace(&ray) {
+            Some(i) => i,
+            None => continue,
+        };
         let normal = interception.object.compute_normal(interception.hitpoint);
         let mut color = Default::default();
-        for light in scene.lights.iter() {
+        for light in &lights {
             let light_direction = -light.direction.normalize();
             let shadow_origin = Vertex {
                 x: interception.hitpoint.x + normal.x * 1e-5,
@@ -114,21 +108,20 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
                 direction: light_direction,
                 kind: RayKind::Shadow,
             };
-            let in_light = scene.trace(&shadow_ray).is_none();
-            statistics.count_ray(&shadow_ray);
-            let light_intensity = if in_light { light.intensity } else { 0.0 };
-            let light_power = normal.dot(light_direction).max(0.0)
-                * light_intensity
-                * interception.object.albedo();
-            color += interception.object.color() * light.color * light_power;
+            if scene.trace(&shadow_ray).is_none() {
+                let light_power = normal.dot(light_direction).max(0.0)
+                    * light.intensity
+                    * interception.object.albedo();
+                color += interception.object.color() * light.color * light_power;
+            }
         }
         let pixel = CoordPixel {
             x: point.0,
             y: point.1,
             pixel: Pixel::Data(color),
         };
-        tx.send(pixel);
+        tx.send(pixel).expect("send processed pixel");
     }
     drop(tx);
-    println!("rays: {:?}", statistics.rays);
+    println!("rays: {:?}", scene.stats.rays);
 }

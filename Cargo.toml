@@ -6,8 +6,7 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.7"
-image = "0.12"
+image = "0.23"
 log = "0.4"
-rand = "0.3"
+rand = "0.7"
 sdl2 = "0.28"
-time = "0.1"

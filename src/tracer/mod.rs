@@ -4,7 +4,8 @@ use std::collections::HashMap;
 
 use crate::graphics::Color;
 use crate::math::vec3::{Vector, Vertex};
-use rand::Rng;
+use objects::Object;
+use rand::seq::SliceRandom;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum RayKind {
@@ -38,7 +39,7 @@ impl Screen {
             }
         }
         let mut rng = rand::thread_rng();
-        rng.shuffle(&mut points);
+        points.shuffle(&mut rng);
         Screen {
             width: width as f32,
             height: height as f32,
@@ -79,24 +80,17 @@ impl Iterator for Screen {
     }
 }
 
-pub trait Object {
-    fn color(&self) -> Color;
-    fn albedo(&self) -> f32;
-    fn intercept(&self, ray: &Ray) -> Option<f32>;
-    fn compute_normal(&self, hitpoint: Vertex) -> Vector;
-}
-
-pub struct Interception<'a> {
-    pub object: &'a Box<dyn Object>,
+pub struct Interception {
+    pub object: Object,
     pub distance: f32,
     pub hitpoint: Vertex,
 }
 
-impl<'a> Interception<'a> {
-    pub fn new<'b>(object: &'b Box<dyn Object>, ray: &Ray, distance: f32) -> Interception<'b> {
+impl Interception {
+    pub fn new(object: Object, ray: &Ray, distance: f32) -> Interception {
         Interception {
-            object: object,
-            distance: distance,
+            object,
+            distance,
             hitpoint: Vertex {
                 x: ray.origin.x + ray.direction.x * distance,
                 y: ray.origin.y + ray.direction.y * distance,
@@ -106,46 +100,42 @@ impl<'a> Interception<'a> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Light {
     pub direction: Vector,
     pub color: Color,
     pub intensity: f32,
 }
 
+#[derive(Default)]
 pub struct Statistics {
     pub rays: HashMap<RayKind, usize>,
 }
 
 impl Statistics {
-    pub fn new() -> Statistics {
-        Statistics {
-            rays: HashMap::new(),
-        }
-    }
-
     pub fn count_ray(&mut self, ray: &Ray) {
         let counter = self.rays.entry(ray.kind.clone()).or_insert(0);
         *counter += 1;
     }
 }
 
+#[derive(Default)]
 pub struct Scene {
-    pub objects: Vec<Box<dyn Object>>,
+    pub objects: Vec<Object>,
     pub lights: Vec<Box<Light>>,
+    pub stats: Statistics,
 }
 
 impl Scene {
-    pub fn new() -> Scene {
-        Scene {
-            objects: Vec::new(),
-            lights: Vec::new(),
-        }
+    pub fn add_object(&mut self, object: impl Into<Object>) {
+        self.objects.push(object.into())
     }
 
-    pub fn trace(&self, ray: &Ray) -> Option<Interception> {
+    pub fn trace(&mut self, ray: &Ray) -> Option<Interception> {
+        self.stats.count_ray(&ray);
         self.objects
             .iter()
-            .filter_map(|o| o.intercept(ray).map(|d| Interception::new(o, ray, d)))
+            .filter_map(|o| o.intercept(ray).map(|d| Interception::new(*o, ray, d)))
             .min_by(|d1, d2| d1.distance.partial_cmp(&d2.distance).unwrap())
     }
 }

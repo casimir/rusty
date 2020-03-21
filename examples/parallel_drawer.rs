@@ -40,7 +40,7 @@ fn fill_part(w: u32, h: u32, start: u32, end: u32, tx: Sender<CoordPixel>) {
                 }),
             };
             std::thread::sleep(std::time::Duration::from_millis(1));
-            tx.send(pixel);
+            tx.send(pixel).expect("send pixel");
         }
     }
 }

@@ -1,9 +1,64 @@
 use crate::graphics::Color;
 use crate::math::vec3::{Vector, Vertex};
 use crate::math::{solve_quadratic, QuadraticSolution};
-use crate::tracer::{Object, Ray};
+use crate::tracer::Ray;
 
-#[derive(Copy, Clone)]
+pub trait RenderableObject {
+    fn color(&self) -> Color;
+    fn albedo(&self) -> f32;
+    fn intercept(&self, ray: &Ray) -> Option<f32>;
+    fn compute_normal(&self, hitpoint: Vertex) -> Vector;
+}
+
+// TODO proc macro to impl RenderableObject
+#[derive(Clone, Copy)]
+pub enum Object {
+    Plane(Plane),
+    Sphere(Sphere),
+}
+
+impl Object {
+    pub fn color(&self) -> Color {
+        match self {
+            Self::Plane(o) => o.color(),
+            Self::Sphere(o) => o.color(),
+        }
+    }
+
+    pub fn albedo(&self) -> f32 {
+        match self {
+            Self::Plane(o) => o.albedo(),
+            Self::Sphere(o) => o.albedo(),
+        }
+    }
+
+    pub fn intercept(&self, ray: &Ray) -> Option<f32> {
+        match self {
+            Self::Plane(o) => o.intercept(ray),
+            Self::Sphere(o) => o.intercept(ray),
+        }
+    }
+
+    pub fn compute_normal(&self, hitpoint: Vertex) -> Vector {
+        match self {
+            Self::Plane(o) => o.compute_normal(hitpoint),
+            Self::Sphere(o) => o.compute_normal(hitpoint),
+        }
+    }
+}
+
+impl From<Plane> for Object {
+    fn from(o: Plane) -> Object {
+        Object::Plane(o)
+    }
+}
+
+impl From<Sphere> for Object {
+    fn from(o: Sphere) -> Object {
+        Object::Sphere(o)
+    }
+}
+#[derive(Clone, Copy)]
 pub struct Plane {
     pub point: Vertex,
     pub normal: Vector,
@@ -11,7 +66,7 @@ pub struct Plane {
     pub base_albedo: f32,
 }
 
-impl Object for Plane {
+impl RenderableObject for Plane {
     fn color(&self) -> Color {
         self.base_color
     }
@@ -37,7 +92,7 @@ impl Object for Plane {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct Sphere {
     pub center: Vertex,
     pub radius: f32,
@@ -45,7 +100,7 @@ pub struct Sphere {
     pub base_albedo: f32,
 }
 
-impl Object for Sphere {
+impl RenderableObject for Sphere {
     fn color(&self) -> Color {
         self.base_color
     }

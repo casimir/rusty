@@ -1,17 +1,14 @@
-extern crate image;
-extern crate sdl2;
-extern crate time;
-
-use self::sdl2::event::Event;
-use self::sdl2::keyboard::Keycode;
-use self::sdl2::pixels::Color::RGB;
-use self::sdl2::rect::Point;
-use self::sdl2::render::Renderer;
 use std::ops::{Add, AddAssign, Mul};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
+
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color::RGB;
+use sdl2::rect::Point;
+use sdl2::render::Renderer;
 
 #[derive(Debug, PartialEq)]
 pub enum ColorError {
@@ -187,7 +184,7 @@ impl Canvas {
 pub enum Error {
     Creation(sdl2::video::WindowBuildError),
     InvalidData(sdl2::IntegerOrSdlError),
-    Export(::std::io::Error),
+    Export(image::ImageError),
 }
 
 impl From<sdl2::video::WindowBuildError> for Error {
@@ -202,8 +199,8 @@ impl From<sdl2::IntegerOrSdlError> for Error {
     }
 }
 
-impl From<::std::io::Error> for Error {
-    fn from(val: ::std::io::Error) -> Error {
+impl From<image::ImageError> for Error {
+    fn from(val: image::ImageError) -> Error {
         Error::Export(val)
     }
 }
@@ -257,7 +254,8 @@ impl Context {
                 for y in 0..self.canvas.height {
                     if let Pixel::Data(color) = self.canvas.get(x, y) {
                         rend.set_draw_color(RGB(color.r, color.g, color.b));
-                        rend.draw_point(Point::new(x as i32, y as i32));
+                        rend.draw_point(Point::new(x as i32, y as i32))
+                            .expect("draw pixel");
                     };
                 }
             }
@@ -281,19 +279,17 @@ impl Context {
     }
 
     pub fn export(&self) -> Result<String, Error> {
-        use self::image::{ImageBuffer, Rgba};
+        use image::{ImageBuffer, Rgba};
         let img = ImageBuffer::from_fn(self.canvas.width, self.canvas.height, |x, y| {
             match self.canvas.get(x, y) {
-                Pixel::Data(color) => Rgba {
-                    data: [color.r, color.g, color.b, color.a],
-                },
-                Pixel::Blank => Rgba {
-                    data: [0x00, 0x00, 0x00, 0x00],
-                },
+                Pixel::Data(color) => Rgba([color.r, color.g, color.b, color.a]),
+                Pixel::Blank => Rgba([0x00, 0x00, 0x00, 0x00]),
             }
         });
-        let timestamp =
-            time::strftime("%Y%m%d%H%M%S", &time::now()).unwrap_or("notime".to_string());
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("get the now")
+            .as_secs();
         let filename: &str = &format!("rusty_{}.png", timestamp);
         img.save(filename)?;
         println!("exported as: {}", filename);
