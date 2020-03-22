@@ -37,3 +37,38 @@ pub fn solve_quadratic(a: f32, b: f32, c: f32) -> QuadraticSolution {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quadratic_two() {
+        assert_eq!(
+            solve_quadratic(1.0, 5.0, 6.0),
+            QuadraticSolution::Two(-2.0, -3.0)
+        );
+        assert_eq!(
+            solve_quadratic(1.0, 7.0, 10.0),
+            QuadraticSolution::Two(-2.0, -5.0)
+        );
+        assert_eq!(
+            solve_quadratic(15.0, 5.0, 0.0),
+            QuadraticSolution::Two(0.0, -1.0 / 3.0)
+        );
+    }
+
+    #[test]
+    fn quadratic_one() {
+        assert_eq!(
+            solve_quadratic(1.0, 8.0, 16.0),
+            QuadraticSolution::One(-4.0)
+        );
+    }
+
+    #[test]
+    fn quadratic_zero() {
+        assert_eq!(solve_quadratic(1.0, 2.0, 3.0), QuadraticSolution::None);
+        assert_eq!(solve_quadratic(1.0, 8.0, 17.0), QuadraticSolution::None);
+    }
+}
