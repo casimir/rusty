@@ -22,23 +22,11 @@ impl From<::std::num::ParseIntError> for ColorError {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
-}
-
-impl Default for Color {
-    fn default() -> Color {
-        Color {
-            r: 0x00,
-            g: 0x00,
-            b: 0x00,
-            a: 0xff,
-        }
-    }
+    pub red: f32,
+    pub green: f32,
+    pub blue: f32,
 }
 
 impl FromStr for Color {
@@ -50,27 +38,12 @@ impl FromStr for Color {
         }
         match src.chars().count() {
             7usize => Ok(Color {
-                r: u8::from_str_radix(&src[1..3], 16)?,
-                g: u8::from_str_radix(&src[3..5], 16)?,
-                b: u8::from_str_radix(&src[5..], 16)?,
-                a: 0xff,
-            }),
-            9usize => Ok(Color {
-                r: u8::from_str_radix(&src[1..3], 16)?,
-                g: u8::from_str_radix(&src[3..5], 16)?,
-                b: u8::from_str_radix(&src[5..7], 16)?,
-                a: u8::from_str_radix(&src[7..], 16)?,
+                red: u8::from_str_radix(&src[1..3], 16)? as f32 / 255.0,
+                green: u8::from_str_radix(&src[3..5], 16)? as f32 / 255.0,
+                blue: u8::from_str_radix(&src[5..], 16)? as f32 / 255.0,
             }),
             _ => Err(ColorError::InvalidColorError),
         }
-    }
-}
-
-fn color_channel_addition(a: u8, b: u8) -> u8 {
-    if a < 0xff - b {
-        a + b
-    } else {
-        0xff
     }
 }
 
@@ -79,10 +52,9 @@ impl Add for Color {
 
     fn add(self, rhs: Color) -> Self {
         Color {
-            r: color_channel_addition(self.r, rhs.r),
-            g: color_channel_addition(self.g, rhs.g),
-            b: color_channel_addition(self.b, rhs.b),
-            a: color_channel_addition(self.a, rhs.a),
+            red: (self.red + rhs.red).min(1.0),
+            green: (self.green + rhs.green).min(1.0),
+            blue: (self.blue + rhs.blue).min(1.0),
         }
     }
 }
@@ -98,10 +70,9 @@ impl Mul for Color {
 
     fn mul(self, rhs: Color) -> Self {
         Color {
-            r: (self.r as f32 * (rhs.r as f32) / 0xff as f32) as u8,
-            g: (self.g as f32 * (rhs.g as f32) / 0xff as f32) as u8,
-            b: (self.b as f32 * (rhs.b as f32) / 0xff as f32) as u8,
-            a: (self.a as f32 * (rhs.a as f32) / 0xff as f32) as u8,
+            red: (self.red * rhs.red).min(1.0),
+            green: (self.green * rhs.green).min(1.0),
+            blue: (self.blue * rhs.blue).min(1.0),
         }
     }
 }
@@ -110,11 +81,11 @@ impl Mul<f32> for Color {
     type Output = Color;
 
     fn mul(self, rhs: f32) -> Self {
+        assert!(rhs.is_sign_positive());
         Color {
-            r: (self.r as f32 * rhs) as u8,
-            g: (self.g as f32 * rhs) as u8,
-            b: (self.b as f32 * rhs) as u8,
-            a: self.a,
+            red: (self.red * rhs).min(1.0),
+            green: (self.green * rhs).min(1.0),
+            blue: (self.blue * rhs).min(1.0),
         }
     }
 }
@@ -233,7 +204,7 @@ impl Context {
         Ok(Context {
             context: sdl_context,
             canvas: Canvas::new(width, height),
-            renderer: renderer,
+            renderer,
             drawer_rx: None,
         })
     }
@@ -253,7 +224,11 @@ impl Context {
             for x in 0..self.canvas.width {
                 for y in 0..self.canvas.height {
                     if let Pixel::Data(color) = self.canvas.get(x, y) {
-                        rend.set_draw_color(RGB(color.r, color.g, color.b));
+                        rend.set_draw_color(RGB(
+                            (color.red * 255.0) as u8,
+                            (color.green * 255.0) as u8,
+                            (color.blue * 255.0) as u8,
+                        ));
                         rend.draw_point(Point::new(x as i32, y as i32))
                             .expect("draw pixel");
                     };
@@ -279,11 +254,15 @@ impl Context {
     }
 
     pub fn export(&self) -> Result<String, Error> {
-        use image::{ImageBuffer, Rgba};
+        use image::{ImageBuffer, Rgb};
         let img = ImageBuffer::from_fn(self.canvas.width, self.canvas.height, |x, y| {
             match self.canvas.get(x, y) {
-                Pixel::Data(color) => Rgba([color.r, color.g, color.b, color.a]),
-                Pixel::Blank => Rgba([0x00, 0x00, 0x00, 0x00]),
+                Pixel::Data(color) => Rgb([
+                    (color.red * 255.0) as u8,
+                    (color.green * 255.0) as u8,
+                    (color.blue * 255.0) as u8,
+                ]),
+                Pixel::Blank => Rgb([0x00, 0x00, 0x00]),
             }
         });
         let timestamp = SystemTime::now()
