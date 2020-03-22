@@ -58,7 +58,7 @@ impl From<Sphere> for Object {
         Object::Sphere(o)
     }
 }
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 pub struct Plane {
     pub point: Vertex,
     pub normal: Vector,
@@ -92,7 +92,7 @@ impl RenderableObject for Plane {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 pub struct Sphere {
     pub center: Vertex,
     pub radius: f32,

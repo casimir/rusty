@@ -1,9 +1,11 @@
+pub mod lights;
 pub mod objects;
 
 use std::collections::HashMap;
 
 use crate::graphics::Color;
 use crate::math::vec3::{Vector, Vertex};
+use lights::Light;
 use objects::Object;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -97,13 +99,6 @@ impl Interception {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct Light {
-    pub direction: Vector,
-    pub color: Color,
-    pub intensity: f32,
-}
-
 #[derive(Default)]
 pub struct Statistics {
     pub rays: HashMap<RayKind, usize>,
@@ -119,7 +114,7 @@ impl Statistics {
 #[derive(Default)]
 pub struct Scene {
     pub objects: Vec<Object>,
-    pub lights: Vec<Box<Light>>,
+    pub lights: Vec<Light>,
     pub stats: Statistics,
 }
 
@@ -128,11 +123,46 @@ impl Scene {
         self.objects.push(object.into())
     }
 
+    pub fn add_light(&mut self, object: impl Into<Light>) {
+        self.lights.push(object.into())
+    }
+
     pub fn trace(&mut self, ray: &Ray) -> Option<Interception> {
+        // TODO smarter ray counting would avoid mut borrow
         self.stats.count_ray(&ray);
         self.objects
             .iter()
             .filter_map(|o| o.intercept(ray).map(|d| Interception::new(*o, ray, d)))
             .min_by(|d1, d2| d1.distance.partial_cmp(&d2.distance).unwrap())
+    }
+
+    pub fn compute_color(&mut self, interception: &Interception) -> Color {
+        let hitpoint = interception.hitpoint;
+        let mut color = Color::default();
+        let normal = interception.object.compute_normal(hitpoint);
+        for light in self.lights.clone() {
+            let light_direction = light.direction_from(hitpoint);
+            let shadow_origin = Vertex {
+                x: hitpoint.x + normal.x * 1e-5,
+                y: hitpoint.y + normal.y * 1e-5,
+                z: hitpoint.z + normal.z * 1e-5,
+            };
+            let shadow_ray = Ray {
+                origin: shadow_origin,
+                direction: light_direction,
+                kind: RayKind::Shadow,
+            };
+            let enlighted = match self.trace(&shadow_ray) {
+                Some(i) => i.distance > light.distance(hitpoint),
+                None => true,
+            };
+            if enlighted {
+                let power = normal.dot(light_direction).max(0.0) * light.intensity(hitpoint);
+                let reflected = interception.object.albedo() / std::f32::consts::PI;
+                let light_color = light.color() * power * reflected;
+                color += interception.object.color() * light_color;
+            }
+        }
+        color
     }
 }
