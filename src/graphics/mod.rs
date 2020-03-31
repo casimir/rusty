@@ -1,15 +1,16 @@
 mod color;
+mod gpu;
 
-use std::sync::mpsc;
+use std::sync::{Arc, RwLock};
 use std::thread;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 pub use color::Color;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color::RGB;
-use sdl2::rect::Point;
-use sdl2::render::Renderer;
+use glium::glutin::{
+    self,
+    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+};
+use gpu::{GpuContextError, GpuError, PositionConverter, Vertex};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Pixel {
@@ -17,24 +18,25 @@ pub enum Pixel {
     Blank,
 }
 
+#[derive(Clone)]
 pub struct Canvas {
-    pub width: u32,
-    pub height: u32,
+    pub width: usize,
+    pub height: usize,
     pixels: Vec<Pixel>,
     dirty: bool,
 }
 
 impl Canvas {
-    pub fn new(width: u32, height: u32) -> Canvas {
+    pub fn new(width: usize, height: usize) -> Canvas {
         Canvas {
-            width: width,
-            height: height,
+            width,
+            height,
             pixels: vec![Pixel::Blank; (width * height) as usize],
-            dirty: true,
+            dirty: false,
         }
     }
 
-    pub fn get(&self, x: u32, y: u32) -> Pixel {
+    pub fn get(&self, x: usize, y: usize) -> Pixel {
         if x > self.width || y > self.height {
             error!("invalid coordinates: ({}, {})", x, y);
             Pixel::Blank
@@ -44,9 +46,10 @@ impl Canvas {
         }
     }
 
-    pub fn set(&mut self, x: u32, y: u32, c: Color) {
+    pub fn set(&mut self, x: usize, y: usize, c: Color) -> bool {
         if x > self.width || y > self.height {
             error!("invalid coordinates: ({}, {})", x, y);
+            false
         } else {
             let index = (x + y * self.width) as usize;
             let old = self.pixels[index];
@@ -54,40 +57,63 @@ impl Canvas {
             if old != new {
                 self.pixels[index] = new;
                 self.dirty = true;
+                true
+            } else {
+                false
             }
         }
     }
 
-    pub fn unset(&mut self, x: u32, y: u32) {
+    pub fn unset(&mut self, x: usize, y: usize) -> bool {
         if x > self.width || y > self.height {
             error!("invalid coordinates: ({}, {})", x, y);
+            false
         } else {
             let index = (x + y * self.width) as usize;
             let old = self.pixels[index];
             if old != Pixel::Blank {
                 self.pixels[index] = Pixel::Blank;
                 self.dirty = true;
+                true
+            } else {
+                false
             }
         }
+    }
+
+    fn as_raw(&self) -> Vec<Vertex> {
+        let pc = PositionConverter::new(self.width, self.height);
+        let mut data = Vec::new();
+        for x in 0..self.width {
+            for y in 0..self.height {
+                if let Pixel::Data(color) = self.get(x, y) {
+                    data.push(Vertex {
+                        position: pc.get(x, y),
+                        color: [color.red, color.green, color.blue],
+                    });
+                }
+            }
+        }
+        data
     }
 }
 
 #[derive(Debug)]
 pub enum Error {
-    Creation(sdl2::video::WindowBuildError),
-    InvalidData(sdl2::IntegerOrSdlError),
+    GpuContext(GpuContextError),
+    Gpu(GpuError),
     Export(image::ImageError),
 }
 
-impl From<sdl2::video::WindowBuildError> for Error {
-    fn from(val: sdl2::video::WindowBuildError) -> Error {
-        Error::Creation(val)
+impl From<GpuContextError> for Error {
+    fn from(val: GpuContextError) -> Self {
+        Self::GpuContext(val)
     }
 }
 
-impl From<sdl2::IntegerOrSdlError> for Error {
-    fn from(val: sdl2::IntegerOrSdlError) -> Error {
-        Error::InvalidData(val)
+impl From<GpuError> for Error {
+    fn from(val: GpuError) -> Self {
+        Self::Gpu(val)
     }
 }
 
@@ -100,127 +126,115 @@ impl From<image::ImageError> for Error {
 #[derive(Debug)]
 pub struct CoordPixel {
     pub pixel: Pixel,
-    pub x: u32,
-    pub y: u32,
+    pub x: usize,
+    pub y: usize,
 }
 
+pub type CanvasLock = Arc<RwLock<Canvas>>;
+
 pub struct Context {
-    context: sdl2::Sdl,
-    canvas: Canvas,
-    renderer: Renderer<'static>,
-    drawer_rx: Option<mpsc::Receiver<CoordPixel>>,
+    width: usize,
+    height: usize,
 }
 
 impl Context {
-    pub fn new(width: u32, height: u32) -> Result<Context, Error> {
-        let sdl_context = sdl2::init().unwrap();
-        let video = sdl_context.video().unwrap();
-        let window = video
-            .window("Rusty", width, height)
-            .position_centered()
-            .opengl()
-            .build()?;
-        let renderer = window.renderer().build()?;
-
-        Ok(Context {
-            context: sdl_context,
-            canvas: Canvas::new(width, height),
-            renderer,
-            drawer_rx: None,
-        })
+    pub fn new(width: usize, height: usize) -> Context {
+        Context { width, height }
     }
 
-    pub fn paint(&mut self) {
-        if let Some(rx) = self.drawer_rx.take() {
-            for point in rx.try_iter() {
-                match point.pixel {
-                    Pixel::Data(color) => self.canvas.set(point.x, point.y, color),
-                    Pixel::Blank => self.canvas.unset(point.x, point.y),
-                }
-            }
-            self.drawer_rx = Some(rx);
-        }
-        if self.canvas.dirty {
-            let rend = &mut self.renderer;
-            for x in 0..self.canvas.width {
-                for y in 0..self.canvas.height {
-                    if let Pixel::Data(color) = self.canvas.get(x, y) {
-                        rend.set_draw_color(RGB(
-                            (color.red * 255.0) as u8,
-                            (color.green * 255.0) as u8,
-                            (color.blue * 255.0) as u8,
-                        ));
-                        rend.draw_point(Point::new(x as i32, y as i32))
-                            .expect("draw pixel");
-                    };
-                }
-            }
-            self.canvas.dirty = false;
-            rend.present();
-            // XXX show metrics
-        }
-    }
-
-    pub fn draw(&mut self, drawer: fn(u32, u32, mpsc::Sender<CoordPixel>)) {
-        if let Some(rx) = self.drawer_rx.take() {
-            drop(rx);
-        }
-        let (tx, rx) = mpsc::channel();
-        self.drawer_rx = Some(rx);
-        let width = self.canvas.width;
-        let height = self.canvas.height;
-        thread::spawn(move || {
-            drawer(width, height, tx);
-        });
-    }
-
-    pub fn export(&self) -> Result<String, Error> {
+    pub fn export(canvas: &Canvas) -> Result<String, Error> {
         use image::{ImageBuffer, Rgb};
-        let img = ImageBuffer::from_fn(self.canvas.width, self.canvas.height, |x, y| {
-            match self.canvas.get(x, y) {
-                Pixel::Data(color) => Rgb([
-                    (color.red * 255.0) as u8,
-                    (color.green * 255.0) as u8,
-                    (color.blue * 255.0) as u8,
-                ]),
-                Pixel::Blank => Rgb([0x00, 0x00, 0x00]),
-            }
-        });
+        let img =
+            ImageBuffer::from_fn(
+                canvas.width as u32,
+                canvas.height as u32,
+                |x, y| match canvas.get(x as usize, y as usize) {
+                    Pixel::Data(color) => Rgb([
+                        (color.red.powf(1.0 / 2.2) * 255.0) as u8,
+                        (color.green.powf(1.0 / 2.2) * 255.0) as u8,
+                        (color.blue.powf(1.0 / 2.2) * 255.0) as u8,
+                    ]),
+                    Pixel::Blank => Rgb([0x00, 0x00, 0x00]),
+                },
+            );
         let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("get the now")
             .as_secs();
         let filename: &str = &format!("rusty_{}.png", timestamp);
         img.save(filename)?;
-        println!("exported as: {}", filename);
+        log::info!("exported as: {}", filename);
         Ok(filename.into())
     }
 
-    pub fn run(&mut self) -> Result<(), Error> {
-        let mut event_pump = self.context.event_pump().unwrap();
-        'running: loop {
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::Quit { .. }
-                    | Event::KeyDown {
-                        keycode: Some(Keycode::Q),
-                        ..
-                    } => break 'running,
-                    Event::KeyDown {
-                        keycode: Some(Keycode::E),
-                        ..
-                    } => {
-                        self.export().unwrap();
-                    }
-                    _ => {}
+    fn key_handler(input: KeyboardInput, canvas: &CanvasLock) -> bool {
+        match input {
+            KeyboardInput {
+                virtual_keycode: Some(virtual_code),
+                state: ElementState::Pressed,
+                ..
+            } => match virtual_code {
+                VirtualKeyCode::Q | VirtualKeyCode::Escape => {
+                    return true;
                 }
+                VirtualKeyCode::E => {
+                    let c_lock = canvas.read().expect("read lock canvas");
+                    if let Err(e) = Self::export(&*c_lock) {
+                        log::error!("failed export generation: {:?}", e);
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+        false
+    }
+
+    pub fn run(&mut self, drawer: fn(CanvasLock)) -> Result<(), Error> {
+        let width = self.width;
+        let height = self.height;
+        let canvas = Arc::new(RwLock::new(Canvas::new(width, height)));
+        let (display, pixel_program, event_loop) = gpu::init_context(width, height, "Rusty")?;
+
+        let canvas_ = canvas.clone();
+        thread::spawn(move || {
+            drawer(canvas_);
+        });
+
+        event_loop.run(move |event, _, control_flow| {
+            let next_frame_time = Instant::now() + Duration::from_nanos(16_666_667);
+            *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
+
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => {
+                        *control_flow = glutin::event_loop::ControlFlow::Exit;
+                        return;
+                    }
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if Self::key_handler(input, &canvas) {
+                            *control_flow = glutin::event_loop::ControlFlow::Exit;
+                            return;
+                        }
+                    }
+                    _ => return,
+                },
+                Event::NewEvents(cause) => match cause {
+                    glutin::event::StartCause::ResumeTimeReached { .. } => (),
+                    glutin::event::StartCause::Init => (),
+                    _ => return,
+                },
+                _ => return,
             }
-            self.paint();
-            thread::sleep(Duration::from_millis(17));
-        }
-        if let Some(rx) = self.drawer_rx.take() {
-            drop(rx);
-        }
-        Ok(())
+
+            if canvas.read().expect("read lock canvas").dirty {
+                let mut c_lock = canvas.write().expect("read lock canvas");
+                let viewport = (width as f32, height as f32);
+                match gpu::render_buffer(&display, c_lock.as_raw(), &pixel_program, viewport) {
+                    Ok(_) => c_lock.dirty = false,
+                    Err(e) => error!("paint error: {:?}", e),
+                };
+            }
+        });
     }
 }

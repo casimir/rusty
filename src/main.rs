@@ -1,20 +1,17 @@
-use std::sync::mpsc::Sender;
-
-use rusty::graphics::{Context, CoordPixel, Pixel};
+use rusty::graphics::{CanvasLock, Context};
 use rusty::math::vec3::{Vector, Vertex};
 use rusty::tracer::lights::{DirectionalLight, SphericalLight};
 use rusty::tracer::objects::{Plane, Sphere};
 use rusty::tracer::{Scene, Screen};
 
-pub fn main() {
+pub fn main() -> Result<(), rusty::graphics::Error> {
     env_logger::init();
 
-    let mut gui = Context::new(800, 600).unwrap();
-    gui.draw(raytracer);
-    gui.run().unwrap();
+    let mut gui = Context::new(800, 600);
+    gui.run(raytracer)
 }
 
-fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
+fn raytracer(canvas: CanvasLock) {
     let mut scene = Scene::default();
     scene.add_object(Sphere {
         center: Vertex {
@@ -86,7 +83,7 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
             z: -1.0,
         },
         base_color: "#FFFFFF".parse().unwrap(),
-        base_intensity: 10000.0,
+        base_intensity: 1000.0,
     });
     scene.add_light(SphericalLight {
         position: Vertex {
@@ -98,18 +95,20 @@ fn raytracer(width: u32, height: u32, tx: Sender<CoordPixel>) {
         base_intensity: 2000.0,
     });
 
+    let (width, height) = {
+        let c = canvas.read().expect("read lock canvas");
+        (c.width, c.height)
+    };
     for (point, ray) in Screen::new(width, height) {
         let interception = match scene.trace(&ray) {
             Some(i) => i,
             None => continue,
         };
-        let pixel = CoordPixel {
-            x: point.0,
-            y: point.1,
-            pixel: Pixel::Data(scene.compute_color(&interception)),
-        };
-        tx.send(pixel).expect("send processed pixel");
+        let color = scene.compute_color(&interception);
+        canvas
+            .write()
+            .expect("write lock canvas")
+            .set(point.0, point.1, color);
     }
-    drop(tx);
-    println!("rays: {:?}", scene.stats.rays);
+    log::info!("rays: {:?}", scene.stats.rays);
 }

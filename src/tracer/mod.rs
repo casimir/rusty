@@ -32,7 +32,7 @@ pub struct Screen {
 }
 
 impl Screen {
-    pub fn new(width: u32, height: u32) -> Screen {
+    pub fn new(width: usize, height: usize) -> Screen {
         let mut points = Vec::new();
         for y in 0..height {
             for x in 0..width {
@@ -43,13 +43,13 @@ impl Screen {
             width: width as f32,
             height: height as f32,
             cursor: 0,
-            points: points,
+            points,
         }
     }
 }
 
 impl Iterator for Screen {
-    type Item = ((u32, u32), Ray);
+    type Item = ((usize, usize), Ray);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cursor == self.points.len() {
@@ -69,10 +69,10 @@ impl Iterator for Screen {
             z: -1.0,
         };
         Some((
-            (point.0 as u32, point.1 as u32),
+            (point.0 as usize, point.1 as usize),
             Ray {
                 kind: RayKind::Primary,
-                origin: origin,
+                origin,
                 direction: Vector::from_vertices(origin, screen_vec),
             },
         ))
